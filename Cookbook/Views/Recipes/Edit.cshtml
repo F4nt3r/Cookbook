@@ -1,0 +1,94 @@
+﻿@model Cookbook.Models.Recipe
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit Recipe</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="CreatedBy" value="@User.Identity?.Name" />
+    <div class="form-group">
+        <label asp-for="Title"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="ImageUrl"></label>
+        <input asp-for="ImageUrl" class="form-control" />
+        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="VideoId"></label>
+        <input asp-for="VideoId" class="form-control" />
+        <span asp-validation-for="VideoId" class="text-danger"></span>
+    </div>
+
+    <div id="ingredients">
+        <h4>Ingredients</h4>
+        @for (int i = 0; i < Model.Ingredients.Count; i++)
+        {
+            <div class="form-group ingredient-group">
+                <input type="hidden" name="Ingredients[@i].Id" value="@Model.Ingredients[i].Id" />
+                <label>@(i + 1). Ingredient</label>
+                <input name="Ingredients[@i].Name" class="form-control" value="@Model.Ingredients[i].Name" placeholder="Name" />
+                <span class="text-danger" asp-validation-for="Ingredients[@i].Name"></span>
+                <input name="Ingredients[@i].Quantity" class="form-control" value="@Model.Ingredients[i].Quantity" placeholder="Quantity" />
+                <span class="text-danger" asp-validation-for="Ingredients[@i].Quantity"></span>
+                <button type="button" class="btn btn-danger remove-ingredient">Remove</button>
+            </div>
+        }
+    </div>
+    <button type="button" id="add-ingredient" class="btn btn-secondary">Add Ingredient</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let ingredientIndex = @Model.Ingredients.Count;
+
+            $('#add-ingredient').click(function () {
+                ingredientIndex++;
+                let ingredientForm = `
+                            <div class="form-group ingredient-group">
+                                <label>${ingredientIndex}. Ingredient</label>
+                                <input name="Ingredients[${ingredientIndex - 1}].Name" class="form-control" placeholder="Name" />
+                                <span class="text-danger" asp-validation-for="Ingredients[${ingredientIndex - 1}].Name"></span>
+                                <input name="Ingredients[${ingredientIndex - 1}].Quantity" class="form-control" placeholder="Quantity" />
+                                <span class="text-danger" asp-validation-for="Ingredients[${ingredientIndex - 1}].Quantity"></span>
+                                <button type="button" class="btn btn-danger remove-ingredient">Remove</button>
+                            </div>`;
+                $('#ingredients').append(ingredientForm);
+            });
+
+            $('#ingredients').on('click', '.remove-ingredient', function () {
+                $(this).closest('.ingredient-group').remove();
+                updateIngredientLabels();
+            });
+
+            function updateIngredientLabels() {
+                $('.ingredient-group').each(function (index) {
+                    $(this).find('label').text((index + 1) + '. Ingredient');
+                    $(this).find('input').each(function () {
+                        let name = $(this).attr('name');
+                        let newName = name.replace(/\[\d+\]/, '[' + index + ']');
+                        $(this).attr('name', newName);
+                    });
+                });
+                ingredientIndex = $('.ingredient-group').length;
+            }
+        });
+    </script>
+}
