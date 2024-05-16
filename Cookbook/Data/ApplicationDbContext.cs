@@ -1,6 +1,7 @@
 ﻿using Cookbook.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Xml.Linq;
 
 namespace Cookbook.Data
 {
@@ -12,5 +13,6 @@ namespace Cookbook.Data
         }
         public DbSet<Recipe> Recipe { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
+        public DbSet<Comment> Comments { get; set; }
     }
 }

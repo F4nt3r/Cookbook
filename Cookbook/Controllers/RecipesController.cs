@@ -9,6 +9,7 @@ using Cookbook.Models;
 using Cookbook.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 
 namespace Cookbook.Controllers
 {
@@ -28,9 +29,32 @@ namespace Cookbook.Controllers
                         View(await _context.Recipe.ToListAsync()) :
                         Problem("Entity set 'ApplicationDbContext.Recipe'  is null.");
         }
+        // GET: Recipes/MyRecipes
+        [Authorize]
+        public async Task<IActionResult> MyRecipes()
+        {
+            if (User.Identity.IsAuthenticated)
+            {
+                var userName = User.FindFirstValue(ClaimTypes.Name);
+                if (string.IsNullOrEmpty(userName))
+                {
+                    return Problem("User name is null or empty");
+                }
+
+                var myRecipes = await _context.Recipe
+                    .Where(r => r.CreatedBy == userName)
+                    .ToListAsync();
+
+                return View(myRecipes);
+            }
+            else
+            {
+                return Forbid(); // lub RedirectToAction("Login", "Account");
+            }
+        }
 
         // GET: Recipes/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, string returnUrl = null)
         {
             if (id == null || _context.Recipe == null)
             {
@@ -39,15 +63,63 @@ namespace Cookbook.Controllers
 
               var recipe = await _context.Recipe
             .Include(r => r.Ingredients)
+            .Include(r => r.Comments)
             .FirstOrDefaultAsync(m => m.Id == id);
             if (recipe == null)
             {
                 return NotFound();
             }
+            if (string.IsNullOrEmpty(returnUrl))
+            {
+                returnUrl = Request.Headers["Referer"].ToString();
+            }
 
-            return View(recipe);
+            ViewBag.ReturnUrl = returnUrl;
+         
+            var viewModel = new RecipeDetails
+            {
+                Recipe = recipe,
+                NewComment = new Comment() // Utwórz nowy obiekt Comment dla dodawania komentarza
+            };
+            return View(viewModel);
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int id, [Bind("Content")] Comment newComment)
+        {
+            var recipe = await _context.Recipe.Include(r => r.Comments).FirstOrDefaultAsync(r => r.Id == id);
+            if (recipe == null)
+            {
+                return NotFound();
+            }
 
+           
+                if (User.Identity.IsAuthenticated)
+                {
+                    var userName = User.FindFirstValue(ClaimTypes.Name);
+
+                    if (!string.IsNullOrEmpty(userName))
+                    {
+                        newComment.UserName = userName;
+                        newComment.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    }
+                }
+            else
+            {
+                string anonym = "Anonim" + Guid.NewGuid().ToString().Substring(0, 4);
+                newComment.UserName = anonym;
+                newComment.UserId = Guid.NewGuid().ToString(); // Ustaw losowy identyfikator dla anonimowego użytkownika
+            }
+
+
+            newComment.CreatedAt = DateTime.Now; 
+                recipe.Comments.Add(newComment);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Details), new { id = id });
+            
+
+           
+        }
         // GET: Recipes/Create
         [Authorize]
         public IActionResult Create()
@@ -82,12 +154,13 @@ namespace Cookbook.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.ReturnUrl = Request.Headers["Referer"].ToString();
             return View(model);
         }
-
+        
         // GET: Recipes/Edit/5
         [Authorize]
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int? id, string returnUrl = null)
         {
             if (id == null || _context.Recipe == null)
             {
@@ -107,6 +180,11 @@ namespace Cookbook.Controllers
             {
                 return Forbid();
             }
+            if (string.IsNullOrEmpty(returnUrl))
+            {
+                returnUrl = Url.Action("Index", "MyRecipes"); 
+            }
+            ViewBag.ReturnUrl = returnUrl;
             return View(recipe);
         }
 
@@ -199,9 +277,9 @@ namespace Cookbook.Controllers
         }
 
 
-        // GET: Recipes/Delete/5
+        // GET: Recipes/Delete/5+
         [Authorize]
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int? id, string returnUrl = null)
         {
             if (id == null || _context.Recipe == null)
             {
@@ -220,6 +298,11 @@ namespace Cookbook.Controllers
             {
                 return Forbid();
             }
+            if (string.IsNullOrEmpty(returnUrl))
+            {
+                returnUrl = Request.Headers["Referer"].ToString();
+            }
+            ViewBag.ReturnUrl = returnUrl;
             return View(recipe);
         }
 

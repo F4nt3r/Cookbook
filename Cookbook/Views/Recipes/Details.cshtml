@@ -1,4 +1,4 @@
-﻿@model Cookbook.Models.Recipe
+﻿@model Cookbook.Models.RecipeDetails
 
 @{
     ViewData["Title"] = "Details";
@@ -11,38 +11,72 @@
     <hr />
     <dl class="row">
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
+            @Html.DisplayNameFor(model => model.Recipe.Title)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
+            @Html.DisplayFor(model => model.Recipe.Title)
         </dd>
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
+            @Html.DisplayNameFor(model => model.Recipe.Description)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
+            @Html.DisplayFor(model => model.Recipe.Description)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Recipe.CreatedBy)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Recipe.CreatedBy)
         </dd>
        
     </dl>
     <h2>Ingredients</h2>
     <ul>
-        @foreach (var ingredient in Model.Ingredients)
+        @foreach (var ingredient in Model.Recipe.Ingredients)
         {
             <li>@ingredient.Quantity - @ingredient.Name</li>
         }
     </ul>
     <h3>Video Tutorial</h3>
-    @if (!string.IsNullOrEmpty(Model.VideoId))
+    @if (!string.IsNullOrEmpty(Model.Recipe.VideoId))
     {
-        <iframe width="400" height="200" src="https://www.youtube.com/embed/@Model.VideoId" frameborder="0" allowfullscreen></iframe>
+        <iframe width="400" height="200" src="https://www.youtube.com/embed/@Model.Recipe.VideoId" frameborder="0" allowfullscreen></iframe>
     }
     <h3>Image</h3>
-     <img src="@Model.ImageUrl" alt="@Model.Title" width="400"><br/>
+    <img src="@Model.Recipe.ImageUrl" alt="@Model.Recipe.Title" width="400"><br />
    
 
         
 </div>
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Edit" asp-route-id="@Model.Recipe.Id" asp-route-returnUrl="@ViewBag.ReturnUrl" class="btn btn-primary">Edit</a>
+    <a href="@ViewBag.ReturnUrl" class="btn btn-secondary">Back to List</a>
 </div>
+<div>
+    <h4>Add a Comment</h4>
+    <form asp-action="AddComment" asp-route-id="@Model.Recipe.Id" method="post">
+        <div class="form-group">
+            <label asp-for="NewComment.Content">Comment:</label>
+            <textarea asp-for="NewComment.Content" class="form-control"></textarea>
+            <span asp-validation-for="NewComment.Content" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+<h2>Comments</h2>
+
+@if (Model.Recipe.Comments.Any())
+{
+    <ul>
+        @foreach (var comment in Model.Recipe.Comments)
+        {
+            <li>
+                @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong> <br /><pre>@comment.Content</pre>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No comments yet.</p>
+}
