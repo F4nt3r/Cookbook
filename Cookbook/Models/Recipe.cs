@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.ComponentModel.DataAnnotations;
 
 namespace Cookbook.Models
 {
@@ -15,12 +16,13 @@ namespace Cookbook.Models
         [Required]
         public string ImageUrl { get; set; }
 
-        
         public string VideoId { get; set; }
         [Required]
         public List<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
         [Required]
         public string CreatedBy { get; set; }
         public List<Comment> Comments { get; set; } = new List<Comment>();
+        
+        public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
     }
 }

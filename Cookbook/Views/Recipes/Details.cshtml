@@ -1,9 +1,12 @@
 ﻿@model Cookbook.Models.RecipeDetails
-
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
 @{
     ViewData["Title"] = "Details";
+   
 }
-
+<link rel="stylesheet" href="~/css/details.css" />
 <h1>Details</h1>
 
 <div>
@@ -30,8 +33,18 @@
         </dd>
        
     </dl>
+    @if (User.Identity.IsAuthenticated)
+    {
+
+        <form asp-action="@(Model.IsFavorite ? "RemoveFromFavorites" : "AddToFavorites")" method="post">
+            <input type="hidden" name="recipeId" value="@Model.Recipe.Id" />
+            <button type="submit" class="btn btn-primary">
+                @(Model.IsFavorite ? "Remove from Favorites" : "Add to Favorites")
+            </button>
+        </form>
+    }
     <h2>Ingredients</h2>
-    <ul>
+    <ul class="ingredients-list">
         @foreach (var ingredient in Model.Recipe.Ingredients)
         {
             <li>@ingredient.Quantity - @ingredient.Name</li>
@@ -44,14 +57,58 @@
     }
     <h3>Image</h3>
     <img src="@Model.Recipe.ImageUrl" alt="@Model.Recipe.Title" width="400"><br />
+    <hr />
+@{
+    var username = User.Identity?.Name;
+    <p>All Ratings:</p>
+    <ul>
+            @foreach (var rating in Model.Recipe.Ratings)
+            {
+                if (rating.UserName == username)
+                {
+                    <li><strong>User: @rating.UserName, Score: @rating.Score</strong></li>
+                }
+                else
+                {
+                    <li>User: @rating.UserName, Score: @rating.Score</li>
+                }
+            }
+    </ul>
+    var userRating = Model.Recipe.Ratings.FirstOrDefault(r => r.UserName == username)?.Score ?? 0;
    
+}
 
+<h2>Rate this Recipe</h2>
+@if (User.Identity.IsAuthenticated)
+{
+    <form asp-action="AddRating" asp-route-id="@Model.Recipe.Id" method="post">
+        <div class="form-group">
+            <label>Rating:</label>
+            <select name="score" class="form-control">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    <option value="@i" >@i</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+   
+}
+else
+{
+    <p>Please login to rate this recipe.</p>
+}
         
 </div>
+
+<hr />
+
 <div>
-    <a asp-action="Edit" asp-route-id="@Model.Recipe.Id" asp-route-returnUrl="@ViewBag.ReturnUrl" class="btn btn-primary">Edit</a>
+ 
     <a href="@ViewBag.ReturnUrl" class="btn btn-secondary">Back to List</a>
 </div>
+<hr />
 <div>
     <h4>Add a Comment</h4>
     <form asp-action="AddComment" asp-route-id="@Model.Recipe.Id" method="post">
@@ -71,7 +128,14 @@
         @foreach (var comment in Model.Recipe.Comments)
         {
             <li>
-                @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong> <br /><pre>@comment.Content</pre>
+                @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong>
+                @if (Model.Recipe.CreatedBy == username)
+                {
+                    <form asp-action="DeleteComment" asp-route-recipeId="@Model.Recipe.Id" asp-route-commentId="@comment.Id" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                }
+                <br /><pre>@comment.Content</pre>
             </li>
         }
     </ul>

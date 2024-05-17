@@ -1,0 +1,57 @@
+﻿/* details.css */
+
+/* Centrowanie elementów */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Stylizacja nagłówków */
+h1, h2, h3, h4 {
+    text-align: center;
+}
+
+/* Oddzielenie sekcji */
+hr {
+    width: 80%;
+    margin: 20px auto;
+}
+
+/* Szerokość dla obrazka */
+img {
+    max-width: 100%;
+}
+
+/* Stylizacja listy składników */
+.ingredients-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* Stylizacja komentarzy */
+.comments-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* Stylizacja przycisków */
+.btn {
+    margin-top: 10px;
+}
+
+/* Formularze */
+.form-group {
+    margin-bottom: 20px;
+}
+
+/* Komentarze */
+.comment {
+    margin-bottom: 20px;
+}
+
+/* Ramka dla komentarzy */
+.comment {
+    border: 1px solid #ccc;
+    padding: 10px;
+}

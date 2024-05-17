@@ -1,0 +1,44 @@
+﻿@model IEnumerable<Cookbook.Models.Favorite>
+<link rel="stylesheet" href="~/css/styles.css" />
+<h1>Your Favorites</h1>
+
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.Recipe.ImageUrl)
+                </th>
+                <th>
+                @Html.DisplayNameFor(model => model.Recipe.Title)
+                </th>
+                <th>
+                @Html.DisplayNameFor(model => model.Recipe.Description)
+                </th>
+              
+
+                <th></th>
+            </tr>
+        </thead>
+    @foreach (var favorite in Model)
+    {
+       
+        <tr>
+            <td>
+                <img src="@favorite.Recipe.ImageUrl" alt="@favorite.Recipe.Title" width="100">
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => favorite.Recipe.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => favorite.Recipe.Description)
+            </td>
+          
+            <td>
+                <a asp-action="Details" asp-route-id="@favorite.Recipe.Id" class="btn btn-info">Details</a>
+            </td>
+        </tr>
+            
+        
+    }
+    </table>

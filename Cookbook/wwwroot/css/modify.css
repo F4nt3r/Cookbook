@@ -1,0 +1,34 @@
+﻿/* create.css */
+
+/* Centrowanie elementów */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Stylizacja nagłówków */
+h1, h2, h3, h4 {
+    text-align: center;
+}
+
+/* Oddzielenie sekcji */
+hr {
+    width: 80%;
+    margin: 20px auto;
+}
+
+/* Stylizacja przycisków */
+.btn {
+    margin-top: 10px;
+}
+
+/* Formularze */
+.form-group {
+    margin-bottom: 20px;
+}
+
+/* Stylizacja błędów walidacji */
+.text-danger {
+    color: red;
+}

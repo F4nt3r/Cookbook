@@ -14,5 +14,7 @@ namespace Cookbook.Data
         public DbSet<Recipe> Recipe { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Rating> Ratings { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
     }
 }

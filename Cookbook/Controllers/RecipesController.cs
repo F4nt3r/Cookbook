@@ -10,6 +10,8 @@ using Cookbook.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using System.Globalization;
 
 namespace Cookbook.Controllers
 {
@@ -23,13 +25,71 @@ namespace Cookbook.Controllers
         }
 
         // GET: Recipes
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString, string sortBy, string sortOrder)
         {
+            var recipes = _context.Recipe
+              .Include(r => r.Ratings)
+              .AsQueryable();
+
+           
+
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                recipes = recipes.Where(r => r.Title.Contains(searchString));
+            }
+            switch (sortBy)
+            {
+                case "Title":
+                    recipes = sortOrder == "asc" ? recipes.OrderBy(r => r.Title) : recipes.OrderByDescending(r => r.Title);
+                    break;
+                case "Ratings":
+                    recipes = sortOrder == "asc" ? recipes.OrderBy(r => r.Ratings.Average(r => r.Score)) : recipes.OrderByDescending(r => r.Ratings.Average(r => r.Score));
+                    break;
+                default:
+                    recipes = recipes.OrderBy(r => r.Title);
+                    break;
+            }
+            var myRecipes = await recipes.ToListAsync();
+
             return _context.Recipe != null ?
-                        View(await _context.Recipe.ToListAsync()) :
-                        Problem("Entity set 'ApplicationDbContext.Recipe'  is null.");
+                        View(myRecipes) :
+                        Problem("Entity set 'ApplicationDbContext.Recipe' is null.");
         }
         // GET: Recipes/MyRecipes
+        [HttpPost]
+        public async Task<IActionResult> AddToFavorites(int recipeId)
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            var favorite = new Favorite { RecipeId = recipeId, UserName = username };
+            _context.Favorites.Add(favorite);
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Details", new { id = recipeId });
+        }
+        [HttpPost]
+        public async Task<IActionResult> RemoveFromFavorites(int recipeId)
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            var favorite = await _context.Favorites
+                .FirstOrDefaultAsync(f => f.RecipeId == recipeId && f.UserName == username);
+            if (favorite != null)
+            {
+                _context.Favorites.Remove(favorite);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("Details", new { id = recipeId });
+        }
+
+        // Action to view user's favorites
+        public async Task<IActionResult> Favorites()
+        {
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            var favorites = await _context.Favorites
+                .Where(f => f.UserName == username)
+                .Include(f => f.Recipe)
+                .ToListAsync();
+            return View(favorites);
+        }
+
         [Authorize]
         public async Task<IActionResult> MyRecipes()
         {
@@ -64,6 +124,7 @@ namespace Cookbook.Controllers
               var recipe = await _context.Recipe
             .Include(r => r.Ingredients)
             .Include(r => r.Comments)
+            .Include(r => r.Ratings)
             .FirstOrDefaultAsync(m => m.Id == id);
             if (recipe == null)
             {
@@ -75,12 +136,22 @@ namespace Cookbook.Controllers
             }
 
             ViewBag.ReturnUrl = returnUrl;
-         
+
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            var isFavorite = await _context.Favorites
+                .AnyAsync(f => f.RecipeId == id && f.UserName == username);
+
             var viewModel = new RecipeDetails
             {
                 Recipe = recipe,
-                NewComment = new Comment() // Utwórz nowy obiekt Comment dla dodawania komentarza
+                NewComment = new Comment(),
+                IsFavorite = isFavorite
             };
+            if (viewModel.Recipe.Ratings == null)
+            {
+                viewModel.Recipe.Ratings = new List<Rating>();
+            }
+
             return View(viewModel);
         }
         [HttpPost]
@@ -92,7 +163,7 @@ namespace Cookbook.Controllers
             {
                 return NotFound();
             }
-
+            if(newComment.Content != null) { 
            
                 if (User.Identity.IsAuthenticated)
                 {
@@ -116,10 +187,80 @@ namespace Cookbook.Controllers
                 recipe.Comments.Add(newComment);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Details), new { id = id });
-            
+            }
+             return RedirectToAction(nameof(Details), new { id = id });
 
-           
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteComment(int recipeId, int commentId)
+        {
+            var recipe = await _context.Recipe.Include(r => r.Comments).FirstOrDefaultAsync(r => r.Id == recipeId);
+            if (recipe == null)
+            {
+                return NotFound();
+            }
+
+            var comment = recipe.Comments.FirstOrDefault(c => c.Id == commentId);
+            if (comment == null)
+            {
+                return NotFound();
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            if (recipe.CreatedBy != userId)
+            {
+                return Forbid(); // Użytkownik nie jest autorem przepisu
+            }
+
+            recipe.Comments.Remove(comment);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Details), new { id = recipeId });
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddRating(int id, int score)
+        {
+            if (score < 1 || score > 5)
+            {
+                return BadRequest("Invalid rating value.");
+            }
+
+            var recipe = await _context.Recipe.Include(r => r.Ratings).FirstOrDefaultAsync(r => r.Id == id);
+            if (recipe == null)
+            {
+                return NotFound();
+            }
+
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            if (username == null)
+            {
+                return Unauthorized();
+            }
+
+            var existingRating = recipe.Ratings.FirstOrDefault(r => r.UserName == username);
+            if (existingRating != null)
+            {
+                existingRating.Score = score;
+                existingRating.CreatedAt = DateTime.Now;
+            }
+            else
+            {
+                var newRating = new Rating
+                {
+                    RecipeId = id,
+                    Score = score,
+                    UserName = username,
+                    CreatedAt = DateTime.Now
+                };
+                recipe.Ratings.Add(newRating);
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = id });
+        }
+
         // GET: Recipes/Create
         [Authorize]
         public IActionResult Create()
@@ -132,32 +273,51 @@ namespace Cookbook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Recipe model)
+        public async Task<IActionResult> Create(Recipe model,string returnUrl = null)
         {
             if (ModelState.IsValid)
             {
-                var recipe = new Recipe
-                {
-                    Title = model.Title,
-                    Description = model.Description,
-                    ImageUrl = model.ImageUrl,
-                    VideoId = model.VideoId,
-                    Ingredients = model.Ingredients.Select(i => new Ingredient
+               
+                    var recipe = new Recipe
                     {
-                        Name = i.Name,
-                        Quantity = i.Quantity
-                    }).ToList(),
-                    CreatedBy = model.CreatedBy
-                };
+                        Title = model.Title,
+                        Description = model.Description,
+                        ImageUrl = model.ImageUrl,
+                        VideoId = model.VideoId,
+                        Ingredients = model.Ingredients.Select(i => new Ingredient
+                        {
+                            Name = i.Name,
+                            Quantity = i.Quantity
+                        }).ToList(),
+                        CreatedBy = model.CreatedBy
+                    };
+                if (string.IsNullOrEmpty(returnUrl))
+                {
+                    returnUrl = Request.Headers["Referer"].ToString();
+                }
 
+                ViewBag.ReturnUrl = returnUrl;
                 _context.Add(recipe);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                
             }
+            else
+            {
+                // Collect error messages
+                var errorMessages = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                foreach (var error in errorMessages)
+                {
+                    Console.WriteLine(error);
+                }
+                ViewBag.ErrorMessages = errorMessages;
+            }
+
             ViewBag.ReturnUrl = Request.Headers["Referer"].ToString();
             return View(model);
         }
-        
+
+
         // GET: Recipes/Edit/5
         [Authorize]
         public async Task<IActionResult> Edit(int? id, string returnUrl = null)
@@ -182,7 +342,7 @@ namespace Cookbook.Controllers
             }
             if (string.IsNullOrEmpty(returnUrl))
             {
-                returnUrl = Url.Action("Index", "MyRecipes"); 
+                returnUrl = Request.Headers["Referer"].ToString();
             }
             ViewBag.ReturnUrl = returnUrl;
             return View(recipe);
@@ -206,6 +366,7 @@ namespace Cookbook.Controllers
             {
                 return Forbid();
             }
+
             if (ModelState.IsValid)
             {
                 try
@@ -226,7 +387,8 @@ namespace Cookbook.Controllers
                     originalRecipe.ImageUrl = recipe.ImageUrl;
                     originalRecipe.VideoId = recipe.VideoId;
                     originalRecipe.CreatedBy = recipe.CreatedBy;
-
+                    originalRecipe.Comments = recipe.Comments;
+                    originalRecipe.Ratings = recipe.Ratings;
                     // Usuń usunięte składniki
                     var removedIngredients = originalRecipe.Ingredients
                         .Where(i => !recipe.Ingredients.Any(ri => ri.Id == i.Id))
