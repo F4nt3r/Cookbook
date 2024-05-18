@@ -273,7 +273,7 @@ namespace Cookbook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Recipe model,string returnUrl = null)
+        public async Task<IActionResult> Create(Recipe model)
         {
             if (ModelState.IsValid)
             {
@@ -291,12 +291,9 @@ namespace Cookbook.Controllers
                         }).ToList(),
                         CreatedBy = model.CreatedBy
                     };
-                if (string.IsNullOrEmpty(returnUrl))
-                {
-                    returnUrl = Request.Headers["Referer"].ToString();
-                }
+              
 
-                ViewBag.ReturnUrl = returnUrl;
+
                 _context.Add(recipe);
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(Index));
@@ -480,7 +477,9 @@ namespace Cookbook.Controllers
             }
 
             var recipe = await _context.Recipe
+                  .Include(r => r.Comments)
                 .Include(r => r.Ingredients)
+                
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             var userId = User.FindFirstValue(ClaimTypes.Name);
@@ -488,11 +487,14 @@ namespace Cookbook.Controllers
             {
                 return Forbid();
             }
-            if (recipe != null)
-            {
-                _context.Recipe.Remove(recipe);
-                await _context.SaveChangesAsync();
-            }
+             if (recipe != null)
+    {
+        // Usuń powiązane komentarze
+        _context.Comments.RemoveRange(recipe.Comments);
+
+        _context.Recipe.Remove(recipe);
+        await _context.SaveChangesAsync();
+    }
 
             return RedirectToAction(nameof(Index));
         }

@@ -7,7 +7,17 @@
 }
 <link rel="stylesheet" href="~/css/modify.css" />
 <h1>Create New Recipe</h1>
-
+@if (ViewBag.ErrorMessages != null)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewBag.ErrorMessages)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
 <form asp-action="Create" method="post">
     <input type="hidden" asp-for="CreatedBy" value="@User.Identity?.Name" />
     <div class="form-group">
@@ -48,9 +58,7 @@
     <button type="submit" class="btn btn-primary">Create</button>
 </form>
 
-<div>
-    <a href="@ViewBag.ReturnUrl" class="btn btn-secondary">Back to List</a>
-</div>
+
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
