@@ -35,14 +35,14 @@
     </dl>
     @if (User.Identity.IsAuthenticated)
     {
-
-        <form asp-action="@(Model.IsFavorite ? "RemoveFromFavorites" : "AddToFavorites")" method="post">
+        <form asp-action="@(Model.IsFavorite ? "RemoveFromFavorites" : "AddToFavorites")" method="post" class="favorite-form">
             <input type="hidden" name="recipeId" value="@Model.Recipe.Id" />
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn @(Model.IsFavorite ? "btn-danger" : "btn-primary")">
                 @(Model.IsFavorite ? "Remove from Favorites" : "Add to Favorites")
             </button>
         </form>
     }
+
     <h2>Ingredients</h2>
     <ul class="ingredients-list">
         @foreach (var ingredient in Model.Recipe.Ingredients)
@@ -78,27 +78,26 @@
    
 }
 
-<h2>Rate this Recipe</h2>
-@if (User.Identity.IsAuthenticated)
-{
-    <form asp-action="AddRating" asp-route-id="@Model.Recipe.Id" method="post">
-        <div class="form-group">
-            <label>Rating:</label>
-            <select name="score" class="form-control">
-                @for (int i = 1; i <= 5; i++)
-                {
-                    <option value="@i" >@i</option>
-                }
-            </select>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-   
-}
-else
-{
-    <p>Please login to rate this recipe.</p>
-}
+    <h2>Rate this Recipe</h2>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <form asp-action="AddRating" asp-route-id="@Model.Recipe.Id" method="post" class="rating-form">
+            <div class="form-group">
+                <label>Rating:</label>
+                <select name="score" class="form-control">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <option value="@i">@i</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    }
+    else
+    {
+        <p>Please login to rate this recipe.</p>
+    }
         
 </div>
 
@@ -106,38 +105,97 @@ else
 
 
 
-<div>
-    <h4>Add a Comment</h4>
-    <form asp-action="AddComment" asp-route-id="@Model.Recipe.Id" method="post">
-        <div class="form-group">
-            <label asp-for="NewComment.Content">Comment:</label>
-            <textarea asp-for="NewComment.Content" class="form-control"></textarea>
-            <span asp-validation-for="NewComment.Content" class="text-danger"></span>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-</div>
 <h2>Comments</h2>
+<div id="comments-section">
+    @if (Model.Recipe.Comments.Any())
+    {
+        <ul>
+            @foreach (var comment in Model.Recipe.Comments)
+            {
+                <li>
+                    @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong>
+                    @if (Model.Recipe.CreatedBy == username)
+                    {
+                        <form asp-action="DeleteComment" asp-route-recipeId="@Model.Recipe.Id" asp-route-commentId="@comment.Id" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    }
+                    <br /><pre>@comment.Content</pre>
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p>No comments yet.</p>
+    }
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Obsługa formularza dodawania do ulubionych
+            $('form.favorite-form').submit(function (event) {
+                event.preventDefault();
 
-@if (Model.Recipe.Comments.Any())
-{
-    <ul>
-        @foreach (var comment in Model.Recipe.Comments)
-        {
-            <li>
-                @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong>
-                @if (Model.Recipe.CreatedBy == username)
-                {
-                    <form asp-action="DeleteComment" asp-route-recipeId="@Model.Recipe.Id" asp-route-commentId="@comment.Id" method="post" style="display:inline;">
-                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                    </form>
-                }
-                <br /><pre>@comment.Content</pre>
-            </li>
-        }
-    </ul>
-}
-else
-{
-    <p>No comments yet.</p>
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+
+                $.post(url, formData)
+                    .done(function (data) {
+                        if (data.isFavorite) {
+                            form.find('button')
+                                .text('Remove from Favorites')
+                                .removeClass('btn-primary')
+                                .addClass('btn-danger');
+                            form.attr('action', '@Url.Action("RemoveFromFavorites")');
+                        } else {
+                            form.find('button')
+                                .text('Add to Favorites')
+                                .removeClass('btn-danger')
+                                .addClass('btn-primary');
+                            form.attr('action', '@Url.Action("AddToFavorites")');
+                        }
+                    })
+                    .fail(function () {
+                        alert('There was an error processing your request. Please try again.');
+                    });
+            });
+
+            // Obsługa formularza dodawania komentarzy
+            $('form.comment-form').submit(function (event) {
+                event.preventDefault();
+
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+
+                $.post(url, formData)
+                    .done(function (data) {
+                        $('#comments-section').html(data);
+                        form.find('textarea').val('');
+                    })
+                    .fail(function () {
+                        alert('There was an error processing your request. Please try again.');
+                    });
+            });
+
+            // Obsługa formularza dodawania ocen
+            $('form.rating-form').submit(function (event) {
+                event.preventDefault();
+
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+
+                $.post(url, formData)
+                    .done(function (data) {
+                        $('#ratings-section').html(data);
+                    })
+                    .fail(function () {
+                        alert('There was an error processing your request. Please try again.');
+                    });
+            });
+        });
+    </script>
 }

@@ -1,71 +1,57 @@
-﻿@model IEnumerable<Cookbook.Models.Recipe>
-
+﻿@using X.PagedList
+@model IPagedList<Cookbook.Models.Recipe>
+@using X.PagedList.Mvc.Core;
+<link rel="stylesheet" href="~/css/indexStyle.css" />
 @{
     ViewData["Title"] = "Recipes";
 }
-<link rel="stylesheet" href="~/css/styles.css" />
-<h1>
-    Recipes
-</h1>
+
+<h1>Recipes</h1>
 
 <p>
     <a asp-action="Create" class="btn btn-success">Create New</a>
 </p>
+
 <form asp-controller="Recipes" asp-action="Index" method="get" class="form-inline my-2">
-    <input class="form-control mr-sm-2" type="search" name="searchString" placeholder="Search Title" aria-label="Search"  style="width: 200px;" />
+    <input class="form-control mr-sm-2" type="search" name="searchString" placeholder="Search Title" aria-label="Search" style="width: 200px;" />
     <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
 </form>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ImageUrl)
-            </th>
-            <th>
-                <a href="#" class="sort" data-sort-by="Title" >  @Html.DisplayNameFor(model => model.Title)</a>
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                <a href="#" class="sort" data-sort-by="Ratings"> @Html.DisplayNameFor(model => model.Ratings)</a>
-            </th>
-           
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            var averageRating = item.Ratings.Any() ? item.Ratings.Average(r => r.Score) : 0;
-            <tr>
-                <td>
-                    <img src="@item.ImageUrl" alt="@item.Title" width="100">
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Title)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Description)
-                </td>
-                <td>
+<div class="sort-options">
+    <a href="#" class="sort" data-sort-by="Title">Sort by Title</a> |
+    <a href="#" class="sort" data-sort-by="Ratings">Sort by Ratings</a>
+</div>
+
+<div class="recipes-grid">
+    @foreach (var item in Model)
+    {
+        var averageRating = item.Ratings.Any() ? item.Ratings.Average(r => r.Score) : 0;
+        <div class="recipe-tile">
+            <a asp-action="Details" asp-route-id="@item.Id">
+                <div class="recipe-image-container">
+                    <img src="@item.ImageUrl" alt="@item.Title" class="recipe-image">
+                </div>
+                <h3>@item.Title</h3>
+                <p>@item.Description</p>
+                <p class="rating">
                     @if (averageRating == 0)
                     {
-                        <p>No Ratings</p>
+                    <p>Rating: None</p>
                     }
                     else
                     {
-                        <p>@averageRating.ToString("0.0")</p>
+                    <p>Rating: @averageRating.ToString("0.0")</p>
                     }
-                </td>
-                <td>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">Details</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                </p>
+            </a>
+        </div>
+    }
+</div>
+
+<div class="pagination">
+    @Html.PagedListPager(Model, page => Url.Action("Index", new { page, sortBy = ViewBag.CurrentSort, sortOrder = ViewBag.CurrentSortOrder }))
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function () {

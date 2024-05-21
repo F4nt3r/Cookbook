@@ -1,44 +1,40 @@
-﻿@model IEnumerable<Cookbook.Models.Favorite>
-<link rel="stylesheet" href="~/css/styles.css" />
+﻿@using X.PagedList
+@model IPagedList<Cookbook.Models.Favorite>
+@using X.PagedList.Mvc.Core;
+<link rel="stylesheet" href="~/css/indexStyle.css" />
+@{
+    ViewData["Title"] = "Your Favorites";
+}
+
 <h1>Your Favorites</h1>
 
-
-    <table class="table">
-        <thead>
-            <tr>
-                <th>
-                    @Html.DisplayNameFor(model => model.Recipe.ImageUrl)
-                </th>
-                <th>
-                @Html.DisplayNameFor(model => model.Recipe.Title)
-                </th>
-                <th>
-                @Html.DisplayNameFor(model => model.Recipe.Description)
-                </th>
-              
-
-                <th></th>
-            </tr>
-        </thead>
+<div class="recipes-grid">
     @foreach (var favorite in Model)
     {
-       
-        <tr>
-            <td>
-                <img src="@favorite.Recipe.ImageUrl" alt="@favorite.Recipe.Title" width="100">
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => favorite.Recipe.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => favorite.Recipe.Description)
-            </td>
-          
-            <td>
-                <a asp-action="Details" asp-route-id="@favorite.Recipe.Id" class="btn btn-info">Details</a>
-            </td>
-        </tr>
-            
-        
+        var recipe = favorite.Recipe;
+        var averageRating = recipe.Ratings.Any() ? recipe.Ratings.Average(r => r.Score) : 0;
+        <div class="recipe-tile">
+            <a asp-action="Details" asp-route-id="@recipe.Id">
+                <div class="recipe-image-container">
+                    <img src="@recipe.ImageUrl" alt="@recipe.Title" class="recipe-image">
+                </div>
+                <h3>@recipe.Title</h3>
+                <p>@recipe.Description</p>
+                <p class="rating">
+                    @if (averageRating == 0)
+                    {
+                    <p>Rating: None</p>
+                    }
+                    else
+                    {
+                    <p>Rating: @averageRating.ToString("0.0")</p>
+                    }
+                </p>
+            </a>
+        </div>
     }
-    </table>
+</div>
+
+<div class="pagination">
+    @Html.PagedListPager(Model, page => Url.Action("Favorites", new { page }))
+</div>

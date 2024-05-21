@@ -12,6 +12,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using System.Globalization;
+using X.PagedList;
 
 namespace Cookbook.Controllers
 {
@@ -25,18 +26,15 @@ namespace Cookbook.Controllers
         }
 
         // GET: Recipes
-        public async Task<IActionResult> Index(string searchString, string sortBy, string sortOrder)
+        public async Task<IActionResult> Index(string searchString, string sortBy, string sortOrder, int? page)
         {
-            var recipes = _context.Recipe
-              .Include(r => r.Ratings)
-              .AsQueryable();
+            var recipes = _context.Recipe.Include(r => r.Ratings).AsQueryable();
 
-           
-
-            if (!String.IsNullOrEmpty(searchString))
+            if (!string.IsNullOrEmpty(searchString))
             {
                 recipes = recipes.Where(r => r.Title.Contains(searchString));
             }
+
             switch (sortBy)
             {
                 case "Title":
@@ -49,11 +47,12 @@ namespace Cookbook.Controllers
                     recipes = recipes.OrderBy(r => r.Title);
                     break;
             }
-            var myRecipes = await recipes.ToListAsync();
 
-            return _context.Recipe != null ?
-                        View(myRecipes) :
-                        Problem("Entity set 'ApplicationDbContext.Recipe' is null.");
+            int pageSize = 8;
+            int pageNumber = page ?? 1;
+            var pagedRecipes = await recipes.ToPagedListAsync(pageNumber, pageSize);
+
+            return View(pagedRecipes);
         }
         // GET: Recipes/MyRecipes
         [HttpPost]
@@ -63,8 +62,9 @@ namespace Cookbook.Controllers
             var favorite = new Favorite { RecipeId = recipeId, UserName = username };
             _context.Favorites.Add(favorite);
             await _context.SaveChangesAsync();
-            return RedirectToAction("Details", new { id = recipeId });
+            return Json(new { isFavorite = true });
         }
+
         [HttpPost]
         public async Task<IActionResult> RemoveFromFavorites(int recipeId)
         {
@@ -76,22 +76,30 @@ namespace Cookbook.Controllers
                 _context.Favorites.Remove(favorite);
                 await _context.SaveChangesAsync();
             }
-            return RedirectToAction("Details", new { id = recipeId });
+            return Json(new { isFavorite = false });
         }
+
 
         // Action to view user's favorites
-        public async Task<IActionResult> Favorites()
+        public async Task<IActionResult> Favorites(int? page)
         {
             var username = User.FindFirstValue(ClaimTypes.Name);
-            var favorites = await _context.Favorites
+            var favorites = _context.Favorites
                 .Where(f => f.UserName == username)
                 .Include(f => f.Recipe)
-                .ToListAsync();
-            return View(favorites);
+                .ThenInclude(r => r.Ratings)
+                .AsQueryable();
+
+            var pageNumber = page ?? 1;
+            var pageSize = 8;
+            var pagedFavorites = await favorites.ToPagedListAsync(pageNumber, pageSize);
+
+            return View(pagedFavorites);
         }
 
+
         [Authorize]
-        public async Task<IActionResult> MyRecipes()
+        public async Task<IActionResult> MyRecipes(int? page)
         {
             if (User.Identity.IsAuthenticated)
             {
@@ -101,17 +109,23 @@ namespace Cookbook.Controllers
                     return Problem("User name is null or empty");
                 }
 
-                var myRecipes = await _context.Recipe
+                var myRecipes = _context.Recipe
                     .Where(r => r.CreatedBy == userName)
-                    .ToListAsync();
+                    .Include(r => r.Ratings)
+                    .AsQueryable();
 
-                return View(myRecipes);
+                var pageNumber = page ?? 1;
+                var pageSize = 10;
+                var pagedMyRecipes = await myRecipes.ToPagedListAsync(pageNumber, pageSize);
+
+                return View(pagedMyRecipes);
             }
             else
             {
                 return Forbid(); // lub RedirectToAction("Login", "Account");
             }
         }
+
 
         // GET: Recipes/Details/5
         public async Task<IActionResult> Details(int? id, string returnUrl = null)
@@ -218,6 +232,9 @@ namespace Cookbook.Controllers
 
             return RedirectToAction(nameof(Details), new { id = recipeId });
         }
+
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddRating(int id, int score)
