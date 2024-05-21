@@ -1,4 +1,4 @@
 dodac panel administratora w ktorym bede zarzadac kategoriami receptur i inicjalizowac admina
-kafelki i stronicowanie
+kafelki i stronicowanie +
 uporzadkowac wyglad szczegolow
-asynchroniczne dodawanie do ulubionych
+asynchroniczne dodawanie do ulubionych +
