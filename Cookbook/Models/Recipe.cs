@@ -24,5 +24,6 @@ namespace Cookbook.Models
         public List<Comment> Comments { get; set; } = new List<Comment>();
         
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
     }
 }

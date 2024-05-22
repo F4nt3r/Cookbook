@@ -55,3 +55,13 @@ img {
     border: 1px solid #ccc;
     padding: 10px;
 }
+
+/* Stylizacja dla kategorii */
+.badge-primary {
+    background-color: #007bff;
+    color: black;
+    padding: 5px 10px;
+    margin-right: 5px;
+    display: inline-block;
+    border-radius: 5px;
+}

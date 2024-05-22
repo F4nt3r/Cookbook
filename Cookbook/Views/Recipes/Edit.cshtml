@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Edit";
 }
+
 <link rel="stylesheet" href="~/css/modify.css" />
 <h1>Edit Recipe</h1>
 
@@ -29,7 +30,22 @@
         <input asp-for="VideoId" class="form-control" />
         <span asp-validation-for="VideoId" class="text-danger"></span>
     </div>
-
+    <div class="form-group">
+        <label>Categories</label>
+        <div>
+            @foreach (var category in (List<Category>)ViewBag.Categories)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="selectedCategories" value="@category.Id" id="category_@category.Id"
+                    @(Model.Categories.Any(c => c.Id == category.Id) ? "checked" : "") />
+                    <label class="form-check-label" for="category_@category.Id">
+                        @category.Name
+                    </label>
+                </div>
+            }
+        </div>
+        <span asp-validation-for="Categories" class="text-danger"></span>
+    </div>
     <div id="ingredients">
         <h4>Ingredients</h4>
         @for (int i = 0; i < Model.Ingredients.Count; i++)
@@ -48,8 +64,6 @@
     <button type="button" id="add-ingredient" class="btn btn-secondary">Add Ingredient</button>
     <button type="submit" class="btn btn-primary">Save</button>
 </form>
-
-
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

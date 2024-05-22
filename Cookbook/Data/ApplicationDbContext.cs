@@ -16,5 +16,6 @@ namespace Cookbook.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<Category> Categories { get; set; }
     }
 }

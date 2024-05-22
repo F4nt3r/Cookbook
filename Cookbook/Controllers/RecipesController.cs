@@ -59,6 +59,8 @@ namespace Cookbook.Controllers
         public async Task<IActionResult> AddToFavorites(int recipeId)
         {
             var username = User.FindFirstValue(ClaimTypes.Name);
+           
+         
             var favorite = new Favorite { RecipeId = recipeId, UserName = username };
             _context.Favorites.Add(favorite);
             await _context.SaveChangesAsync();
@@ -104,6 +106,7 @@ namespace Cookbook.Controllers
             if (User.Identity.IsAuthenticated)
             {
                 var userName = User.FindFirstValue(ClaimTypes.Name);
+                
                 if (string.IsNullOrEmpty(userName))
                 {
                     return Problem("User name is null or empty");
@@ -138,6 +141,7 @@ namespace Cookbook.Controllers
               var recipe = await _context.Recipe
             .Include(r => r.Ingredients)
             .Include(r => r.Comments)
+            .Include(r => r.Categories)
             .Include(r => r.Ratings)
             .FirstOrDefaultAsync(m => m.Id == id);
             if (recipe == null)
@@ -282,6 +286,7 @@ namespace Cookbook.Controllers
         [Authorize]
         public IActionResult Create()
         {
+            ViewBag.Categories = _context.Categories.ToList();
             return View();
         }
 
@@ -290,31 +295,33 @@ namespace Cookbook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Recipe model)
+        public async Task<IActionResult> Create(Recipe model, List<int> selectedCategories)
         {
             if (ModelState.IsValid)
             {
-               
-                    var recipe = new Recipe
+                var recipe = new Recipe
+                {
+                    Title = model.Title,
+                    Description = model.Description,
+                    ImageUrl = model.ImageUrl,
+                    VideoId = model.VideoId,
+                    Ingredients = model.Ingredients.Select(i => new Ingredient
                     {
-                        Title = model.Title,
-                        Description = model.Description,
-                        ImageUrl = model.ImageUrl,
-                        VideoId = model.VideoId,
-                        Ingredients = model.Ingredients.Select(i => new Ingredient
-                        {
-                            Name = i.Name,
-                            Quantity = i.Quantity
-                        }).ToList(),
-                        CreatedBy = model.CreatedBy
-                    };
-              
+                        Name = i.Name,
+                        Quantity = i.Quantity
+                    }).ToList(),
+                    CreatedBy = model.CreatedBy,
+                    Categories = new List<Category>()
+                };
 
+                if (selectedCategories != null && selectedCategories.Any())
+                {
+                    recipe.Categories = _context.Categories.Where(c => selectedCategories.Contains(c.Id)).ToList();
+                }
 
                 _context.Add(recipe);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
             }
             else
             {
@@ -328,8 +335,10 @@ namespace Cookbook.Controllers
             }
 
             ViewBag.ReturnUrl = Request.Headers["Referer"].ToString();
+            ViewBag.Categories = _context.Categories.ToList();
             return View(model);
         }
+
 
 
         // GET: Recipes/Edit/5
@@ -343,6 +352,7 @@ namespace Cookbook.Controllers
 
             var recipe = await _context.Recipe
                 .Include(r => r.Ingredients)
+                .Include(c => c.Categories)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (recipe == null)
@@ -359,6 +369,8 @@ namespace Cookbook.Controllers
                 returnUrl = Request.Headers["Referer"].ToString();
             }
             ViewBag.ReturnUrl = returnUrl;
+            ViewBag.Categories = await _context.Categories.ToListAsync();
+
             return View(recipe);
         }
 
@@ -369,7 +381,7 @@ namespace Cookbook.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Edit(int id, Recipe recipe)
+        public async Task<IActionResult> Edit(int id, Recipe recipe, int[] selectedCategories)
         {
             if (id != recipe.Id)
             {
@@ -388,6 +400,7 @@ namespace Cookbook.Controllers
                     // Pobierz oryginalny przepis z bazy danych
                     var originalRecipe = await _context.Recipe
                         .Include(r => r.Ingredients)
+                        .Include(r => r.Categories)
                         .FirstOrDefaultAsync(r => r.Id == id);
 
                     if (originalRecipe == null)
@@ -432,7 +445,18 @@ namespace Cookbook.Controllers
                             });
                         }
                     }
-
+                    originalRecipe.Categories.Clear();
+                    if (selectedCategories != null)
+                    {
+                        foreach (var categoryId in selectedCategories)
+                        {
+                            var category = await _context.Categories.FindAsync(categoryId);
+                            if (category != null)
+                            {
+                                originalRecipe.Categories.Add(category);
+                            }
+                        }
+                    }
                     _context.Update(originalRecipe);
                     await _context.SaveChangesAsync();
                 }
@@ -449,6 +473,8 @@ namespace Cookbook.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.Categories = new MultiSelectList(_context.Categories, "Id", "Name", recipe.Categories.Select(c => c.Id));
+
             return View(recipe);
         }
 
