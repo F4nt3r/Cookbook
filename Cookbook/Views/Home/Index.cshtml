@@ -1,7 +1,8 @@
 ﻿@model Cookbook.Models.Recipe;
 @{
     ViewData["Title"] = "Home Page";
-    var averageRating = Model.Ratings.Any() ? Model.Ratings.Average(r => r.Score) : 0;
+   
+    var averageRating = Model?.Ratings.Any() ?? false ? Model.Ratings.Average(r => r.Score) : 0;
 }
 <link rel="stylesheet" href="~/css/indexStyle.css" />
 <div class="row">
@@ -14,15 +15,17 @@
     <div class="col-md-4">
         <h2>Najlepiej Oceniany Przepis</h2>
         <div class="recipes-grid">
-          
-               
+
+
+            @if (Model != null)
+            {
                 <div class="recipe-tile">
                     <a asp-controller="Recipes" asp-action="Details" asp-route-id="@Model.Id">
                         <div class="recipe-image-container">
-                        <img src="@Model.ImageUrl" alt="@Model.Title" class="recipe-image">
+                            <img src="@Model.ImageUrl" alt="@Model.Title" class="recipe-image">
                         </div>
-                    <h3>@Model.Title</h3>
-                    <p>@Model.Description</p>
+                        <h3>@Model.Title</h3>
+                        <p>@Model.Description</p>
                         <p class="rating">
                             @if (averageRating == 0)
                             {
@@ -35,7 +38,12 @@
                         </p>
                     </a>
                 </div>
-            
+            }
+            else
+            {
+                <p>Nie ma żadnych przepisów do wyświetlenia.</p>
+            }
+             
         </div>
     </div>
 </div>
