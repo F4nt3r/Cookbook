@@ -26,7 +26,7 @@ namespace Cookbook.Controllers
         }
 
         // GET: Recipes
-        public async Task<IActionResult> Index(string searchString, string sortBy, string sortOrder, int? page)
+        public async Task<IActionResult> Index(string searchString, string sortBy, string sortOrder, int? page, int? categoryId)
         {
             var recipes = _context.Recipe.Include(r => r.Ratings).AsQueryable();
 
@@ -34,7 +34,10 @@ namespace Cookbook.Controllers
             {
                 recipes = recipes.Where(r => r.Title.Contains(searchString));
             }
-
+            if (categoryId.HasValue)
+            {
+                recipes = recipes.Where(r => r.Categories.Any(c => c.Id == categoryId.Value));
+            }
             switch (sortBy)
             {
                 case "Title":
@@ -48,9 +51,13 @@ namespace Cookbook.Controllers
                     break;
             }
 
-            int pageSize = 8;
+            int pageSize = 6;
             int pageNumber = page ?? 1;
             var pagedRecipes = await recipes.ToPagedListAsync(pageNumber, pageSize);
+
+            var categories = await _context.Categories.ToListAsync();
+            ViewBag.Categories = categories;
+            ViewBag.CurrentCategory = categoryId;
 
             return View(pagedRecipes);
         }
@@ -83,7 +90,7 @@ namespace Cookbook.Controllers
 
 
         // Action to view user's favorites
-        public async Task<IActionResult> Favorites(int? page)
+        public async Task<IActionResult> Favorites(int? page, int? categoryId)
         {
             var username = User.FindFirstValue(ClaimTypes.Name);
             var favorites = _context.Favorites
@@ -91,17 +98,25 @@ namespace Cookbook.Controllers
                 .Include(f => f.Recipe)
                 .ThenInclude(r => r.Ratings)
                 .AsQueryable();
+            if (categoryId.HasValue)
+            {
+                favorites = favorites.Where(r => r.Recipe.Categories.Any(c => c.Id == categoryId.Value));
+            }
 
             var pageNumber = page ?? 1;
-            var pageSize = 8;
+            var pageSize = 6;
             var pagedFavorites = await favorites.ToPagedListAsync(pageNumber, pageSize);
+
+            var categories = await _context.Categories.ToListAsync();
+            ViewBag.Categories = categories;
+            ViewBag.CurrentCategory = categoryId;
 
             return View(pagedFavorites);
         }
 
 
         [Authorize]
-        public async Task<IActionResult> MyRecipes(int? page)
+        public async Task<IActionResult> MyRecipes(int? page, int? categoryId)
         {
             if (User.Identity.IsAuthenticated)
             {
@@ -117,9 +132,17 @@ namespace Cookbook.Controllers
                     .Include(r => r.Ratings)
                     .AsQueryable();
 
+                if (categoryId.HasValue)
+                {
+                    myRecipes = myRecipes.Where(r => r.Categories.Any(c => c.Id == categoryId.Value));
+                }
                 var pageNumber = page ?? 1;
-                var pageSize = 10;
+                var pageSize = 6;
                 var pagedMyRecipes = await myRecipes.ToPagedListAsync(pageNumber, pageSize);
+
+                var categories = await _context.Categories.ToListAsync();
+                ViewBag.Categories = categories;
+                ViewBag.CurrentCategory = categoryId;
 
                 return View(pagedMyRecipes);
             }

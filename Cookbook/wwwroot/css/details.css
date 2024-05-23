@@ -8,7 +8,7 @@
 }
 
 /* Stylizacja nagłówków */
-h1, h2, h3, h4 {
+h1, h2, h3 {
     text-align: center;
 }
 
@@ -64,4 +64,10 @@ img {
     margin-right: 5px;
     display: inline-block;
     border-radius: 5px;
+    text-decoration: none; /* Wyłączenie domyślnych dekoracji */
+    transition: color 0.3s; /* Animacja zmiany koloru tekstu */
 }
+
+    .badge-primary:hover {
+        color: white; /* Zmiana koloru tekstu na biały po najechaniu */
+    }

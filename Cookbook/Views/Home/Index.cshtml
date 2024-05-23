@@ -1,8 +1,41 @@
-﻿@{
+﻿@model Cookbook.Models.Recipe;
+@{
     ViewData["Title"] = "Home Page";
+    var averageRating = Model.Ratings.Any() ? Model.Ratings.Average(r => r.Score) : 0;
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<link rel="stylesheet" href="~/css/indexStyle.css" />
+<div class="row">
+    <div class="col-md-8">
+        <div class="text-center">
+            <h1 class="display-4">Witaj na stronie z przepisami!</h1>
+            <p>Na tej stronie znajdziesz bogatą kolekcję przepisów kulinarnej sztuki. Możesz przeglądać, oceniać, dodawać do ulubionych i komentować różnorodne przepisy kulinarnych specjałów. Nie czekaj dłużej, dołącz do naszej społeczności kucharzy i podziel się swoimi własnymi smakołykami!</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <h2>Najlepiej Oceniany Przepis</h2>
+        <div class="recipes-grid">
+          
+               
+                <div class="recipe-tile">
+                    <a asp-controller="Recipes" asp-action="Details" asp-route-id="@Model.Id">
+                        <div class="recipe-image-container">
+                        <img src="@Model.ImageUrl" alt="@Model.Title" class="recipe-image">
+                        </div>
+                    <h3>@Model.Title</h3>
+                    <p>@Model.Description</p>
+                        <p class="rating">
+                            @if (averageRating == 0)
+                            {
+                            <p>Rating: None</p>
+                            }
+                            else
+                            {
+                            <p>Rating: @averageRating.ToString("0.0")</p>
+                            }
+                        </p>
+                    </a>
+                </div>
+            
+        </div>
+    </div>
 </div>

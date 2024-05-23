@@ -6,35 +6,58 @@
     ViewData["Title"] = "Your Favorites";
 }
 
-<h1>Your Favorites</h1>
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <h3>Categories</h3>
 
-<div class="recipes-grid">
-    @foreach (var favorite in Model)
-    {
-        var recipe = favorite.Recipe;
-        var averageRating = recipe.Ratings.Any() ? recipe.Ratings.Average(r => r.Score) : 0;
-        <div class="recipe-tile">
-            <a asp-action="Details" asp-route-id="@recipe.Id">
-                <div class="recipe-image-container">
-                    <img src="@recipe.ImageUrl" alt="@recipe.Title" class="recipe-image">
-                </div>
-                <h3>@recipe.Title</h3>
-                <p>@recipe.Description</p>
-                <p class="rating">
-                    @if (averageRating == 0)
-                    {
-                    <p>Rating: None</p>
-                    }
-                    else
-                    {
-                    <p>Rating: @averageRating.ToString("0.0")</p>
-                    }
-                </p>
-            </a>
+         
+            <ul class="list-group">
+                <a asp-action="Favorites" asp-route-categoryId="">
+                <li class="list-group-item @(ViewBag.CurrentCategory == null ? "active" : "")">
+                    All
+                </li></a>
+                @foreach (var category in ViewBag.Categories)
+                {
+                    <a asp-action="Favorites" asp-route-categoryId="@category.Id">
+                    <li class="list-group-item @(ViewBag.CurrentCategory == category.Id ? "active" : "")">
+                            @category.Name
+                    </li>
+                    </a>
+                }
+            </ul>
         </div>
-    }
-</div>
-
-<div class="pagination">
-    @Html.PagedListPager(Model, page => Url.Action("Favorites", new { page }))
+        <div class="col-md-9">
+            <h1>Your Favorites</h1>
+            <div class="recipes-grid">
+                @foreach (var favorite in Model)
+                {
+                    var recipe = favorite.Recipe;
+                    var averageRating = recipe.Ratings.Any() ? recipe.Ratings.Average(r => r.Score) : 0;
+                    <div class="recipe-tile">
+                        <a asp-action="Details" asp-route-id="@recipe.Id">
+                            <div class="recipe-image-container">
+                                <img src="@recipe.ImageUrl" alt="@recipe.Title" class="recipe-image">
+                            </div>
+                            <h3>@recipe.Title</h3>
+                            <p>@recipe.Description</p>
+                            <p class="rating">
+                                @if (averageRating == 0)
+                                {
+                                <p>Rating: None</p>
+                                }
+                                else
+                                {
+                                <p>Rating: @averageRating.ToString("0.0")</p>
+                                }
+                            </p>
+                        </a>
+                    </div>
+                }
+            </div>
+            <div class="pagination">
+                @Html.PagedListPager(Model, page => Url.Action("Favorites", new { page }))
+            </div>
+        </div>
+    </div>
 </div>

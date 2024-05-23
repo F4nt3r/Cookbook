@@ -4,112 +4,111 @@
 @inject UserManager<IdentityUser> UserManager
 @{
     ViewData["Title"] = "Details";
-   
 }
-<link rel="stylesheet" href="~/css/detail.css" />
-<h1>Details</h1>
 
-<div>
-    <h4>Recipe</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Recipe.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Recipe.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Recipe.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Recipe.Description)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Recipe.CreatedBy)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Recipe.CreatedBy)
-        </dd>
-        <dt class="col-sm-2">
-            Categories
-        </dt>
-        <dd class="col-sm-10">
-            @foreach (var category in Model.Recipe.Categories)
+<link rel="stylesheet" href="~/css/details.css" />
+<h1>@Model.Recipe.Title</h1>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="recipe-details">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <form asp-action="@(Model.IsFavorite ? "RemoveFromFavorites" : "AddToFavorites")" method="post" class="favorite-form">
+                        <input type="hidden" name="recipeId" value="@Model.Recipe.Id" />
+                        <button type="submit" class="btn @(Model.IsFavorite ? "btn-danger" : "btn-primary")">
+                            @(Model.IsFavorite ? "Remove from Favorites" : "Add to Favorites")
+                        </button>
+                    </form>
+                }
+                <h4>Description</h4>
+                <p>@Model.Recipe.Description</p>
+                <h4>Created By</h4>
+                <p>@Model.Recipe.CreatedBy</p>
+                <h4>Categories</h4>
+                @if (Model.Recipe.Categories.Any())
+                {
+                    <p>
+                        @foreach (var category in Model.Recipe.Categories)
+                        {
+                            <a href="@Url.Action("Index", "Recipes", new { categoryId = category.Id })" class="badge badge-primary">@category.Name</a>
+                        }
+                    </p>
+                }
+                else
+                {
+                    <p>No categories assigned.</p>
+                }
+
+            </div>
+         
+            <h4>Ingredients</h4>
+            <ul class="ingredients-list">
+                @foreach (var ingredient in Model.Recipe.Ingredients)
+                {
+                    <li>@ingredient.Quantity - @ingredient.Name</li>
+                }
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h3>Image</h3>
+            <img src="@Model.Recipe.ImageUrl" alt="@Model.Recipe.Title" class="recipe-image">
+            <h3>Video Tutorial</h3>
+            @if (!string.IsNullOrEmpty(Model.Recipe.VideoId))
             {
-                <span class="badge badge-primary">@category.Name</span>
+                <div class="embed-responsive embed-responsive-16by9">
+                    <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/@Model.Recipe.VideoId" allowfullscreen></iframe>
+                </div>
             }
-        </dd>
-    </dl>
-    @if (User.Identity.IsAuthenticated)
-    {
-        <form asp-action="@(Model.IsFavorite ? "RemoveFromFavorites" : "AddToFavorites")" method="post" class="favorite-form">
-            <input type="hidden" name="recipeId" value="@Model.Recipe.Id" />
-            <button type="submit" class="btn @(Model.IsFavorite ? "btn-danger" : "btn-primary")">
-                @(Model.IsFavorite ? "Remove from Favorites" : "Add to Favorites")
-            </button>
-        </form>
-    }
-
-    <h2>Ingredients</h2>
-    <ul class="ingredients-list">
-        @foreach (var ingredient in Model.Recipe.Ingredients)
-        {
-            <li>@ingredient.Quantity - @ingredient.Name</li>
-        }
-    </ul>
-    <h3>Video Tutorial</h3>
-    @if (!string.IsNullOrEmpty(Model.Recipe.VideoId))
-    {
-        <iframe width="400" height="200" src="https://www.youtube.com/embed/@Model.Recipe.VideoId" frameborder="0" allowfullscreen></iframe>
-    }
-    <h3>Image</h3>
-    <img src="@Model.Recipe.ImageUrl" alt="@Model.Recipe.Title" width="400"><br />
-    <hr />
+        </div>
+    </div>
+</div>
+<hr />
 @{
     var username = User.Identity?.Name;
     <p>All Ratings:</p>
     <ul>
-            @foreach (var rating in Model.Recipe.Ratings)
+        @foreach (var rating in Model.Recipe.Ratings)
+        {
+            if (rating.UserName == username)
             {
-                if (rating.UserName == username)
-                {
-                    <li><strong>User: @rating.UserName, Score: @rating.Score</strong></li>
-                }
-                else
-                {
-                    <li>User: @rating.UserName, Score: @rating.Score</li>
-                }
+                <li><strong>User: @rating.UserName, Score: @rating.Score</strong></li>
             }
+            else
+            {
+                <li>User: @rating.UserName, Score: @rating.Score</li>
+            }
+        }
     </ul>
     var userRating = Model.Recipe.Ratings.FirstOrDefault(r => r.UserName == username)?.Score ?? 0;
-   
+
 }
 
-    <h2>Rate this Recipe</h2>
-    @if (User.Identity.IsAuthenticated)
-    {
-        <form asp-action="AddRating" asp-route-id="@Model.Recipe.Id" method="post" class="rating-form">
-            <div class="form-group">
-                <label>Rating:</label>
-                <select name="score" class="form-control">
-                    @for (int i = 1; i <= 5; i++)
-                    {
-                        <option value="@i">@i</option>
-                    }
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
-    }
-    else
-    {
-        <p>Please login to rate this recipe.</p>
-    }
-        
-</div>
+<h2>Rate this Recipe</h2>
+@if (User.Identity.IsAuthenticated)
+{
+    <form asp-action="AddRating" asp-route-id="@Model.Recipe.Id" method="post" class="rating-form">
+        <div class="form-group">
+            <label>Rating:</label>
+            <select name="score" class="form-control">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    <option value="@i">@i</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+}
+else
+{
+    <p>Please login to rate this recipe.</p>
+}
 
-<hr />
+
+
+
 
 <h2>Add a Comment</h2>
 <form asp-action="AddComment" asp-route-id="@Model.Recipe.Id" method="post" class="comment-form">
@@ -124,18 +123,18 @@
 <div id="comments-section">
     @if (Model.Recipe.Comments.Any())
     {
-        <ul>
+        <ul class="comments-list">
             @foreach (var comment in Model.Recipe.Comments)
             {
-                <li>
-                    @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss") - <strong>@comment.UserName</strong>
-                    @if (Model.Recipe.CreatedBy == username)
+                <li class="comment">
+                    <p><strong>@comment.UserName</strong> - @comment.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss")</p>
+                    @if (Model.Recipe.CreatedBy == User.Identity.Name)
                     {
                         <form asp-action="DeleteComment" asp-route-recipeId="@Model.Recipe.Id" asp-route-commentId="@comment.Id" method="post" style="display:inline;">
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     }
-                    <br /><pre>@comment.Content</pre>
+                    <p>@comment.Content</p>
                 </li>
             }
         </ul>
@@ -145,6 +144,7 @@
         <p>No comments yet.</p>
     }
 </div>
+
 @section Scripts {
     <script>
         $(document).ready(function () {

@@ -95,3 +95,21 @@
         border-color: #007bff;
         pointer-events: none;
     }
+.list-group a{
+    text-decoration: none;
+    color: black;
+}
+.list-group-item.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+
+}
+    .list-group-item.active a {
+        color: white; /* Zmiana koloru tekstu na biały dla aktywnego linku */
+    }
+h1 {
+    text-align: center;
+    margin-top: 20px; /* Dodajemy odstęp od góry */
+    margin-bottom: 20px; /* Dodajemy odstęp na dole */
+}

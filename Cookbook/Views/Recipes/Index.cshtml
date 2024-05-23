@@ -8,49 +8,74 @@
 
 <h1>Recipes</h1>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">Create New</a>
-</p>
-
-<form asp-controller="Recipes" asp-action="Index" method="get" class="form-inline my-2">
-    <input class="form-control mr-sm-2" type="search" name="searchString" placeholder="Search Title" aria-label="Search" style="width: 200px;" />
-    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-</form>
-
-<div class="sort-options">
-    <a href="#" class="sort" data-sort-by="Title">Sort by Title</a> |
-    <a href="#" class="sort" data-sort-by="Ratings">Sort by Ratings</a>
-</div>
-
-<div class="recipes-grid">
-    @foreach (var item in Model)
-    {
-        var averageRating = item.Ratings.Any() ? item.Ratings.Average(r => r.Score) : 0;
-        <div class="recipe-tile">
-            <a asp-action="Details" asp-route-id="@item.Id">
-                <div class="recipe-image-container">
-                    <img src="@item.ImageUrl" alt="@item.Title" class="recipe-image">
-                </div>
-                <h3>@item.Title</h3>
-                <p>@item.Description</p>
-                <p class="rating">
-                    @if (averageRating == 0)
-                    {
-                    <p>Rating: None</p>
-                    }
-                    else
-                    {
-                    <p>Rating: @averageRating.ToString("0.0")</p>
-                    }
-                </p>
-            </a>
+<div class="container">
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Lista kategorii, przycisk Create i wyszukiwarka -->
+            <p>
+                <a asp-action="Create" class="btn btn-success">Create New</a>
+            </p>
+            <form asp-controller="Recipes" asp-action="Index" method="get" class="form-inline">
+                <input class="form-control mr-sm-2" type="search" name="searchString" placeholder="Search Title" aria-label="Search" style="width: 200px;" />
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </form>
+            <h3>Categories</h3>
+            <ul class="list-group">
+                <a asp-action="Index" asp-route-categoryId="">
+                <li class="list-group-item @(ViewBag.CurrentCategory == null ? "active" : "")">
+                   All
+                </li></a>
+                @foreach (var category in ViewBag.Categories)
+                {
+                    <a asp-action="Index" asp-route-categoryId="@category.Id">
+                    <li class="list-group-item @(ViewBag.CurrentCategory == category.Id ? "active" : "")">
+                       @category.Name
+                    </li>
+                    </a>
+                }
+            </ul>
+          
         </div>
-    }
+        <div class="col-md-9">
+            <!-- Sortowanie i przepisy -->
+            <div class="sort-options">
+                <a href="#" class="sort" data-sort-by="Title">Sort by Title</a> |
+                <a href="#" class="sort" data-sort-by="Ratings">Sort by Ratings</a>
+            </div>
+
+            <div class="recipes-grid">
+                @foreach (var item in Model)
+                {
+                    var averageRating = item.Ratings.Any() ? item.Ratings.Average(r => r.Score) : 0;
+                    <div class="recipe-tile">
+                        <a asp-action="Details" asp-route-id="@item.Id">
+                            <div class="recipe-image-container">
+                                <img src="@item.ImageUrl" alt="@item.Title" class="recipe-image">
+                            </div>
+                            <h3>@item.Title</h3>
+                            <p>@item.Description</p>
+                            <p class="rating">
+                                @if (averageRating == 0)
+                                {
+                                <p>Rating: None</p>
+                                }
+                                else
+                                {
+                                <p>Rating: @averageRating.ToString("0.0")</p>
+                                }
+                            </p>
+                        </a>
+                    </div>
+                }
+            </div>
+
+            <div class="pagination">
+                @Html.PagedListPager(Model, page => Url.Action("Index", new { page, sortBy = ViewBag.CurrentSort, sortOrder = ViewBag.CurrentSortOrder, categoryId = ViewBag.CurrentCategory }))
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="pagination">
-    @Html.PagedListPager(Model, page => Url.Action("Index", new { page, sortBy = ViewBag.CurrentSort, sortOrder = ViewBag.CurrentSortOrder }))
-</div>
 
 @section Scripts {
     <script>
@@ -62,7 +87,7 @@
                 var params = new URLSearchParams(window.location.search);
                 var sortOrder = params.get('sortOrder');
                 sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-                url += '?sortBy=' + sortBy + '&sortOrder=' + sortOrder;
+                url += '?sortBy=' + sortBy + '&sortOrder=' + sortOrder + '&categoryId=' + '@ViewBag.CurrentCategory';
                 window.location.href = url;
             });
         });
